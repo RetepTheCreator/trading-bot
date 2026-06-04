@@ -1,48 +1,36 @@
 name: Trading Bot – Daily Session
 
 on:
-  # Runs every weekday at 13:00 UTC = 09:00 EDT (summer, Mar–Nov)
-  # In winter (Nov–Mar) US clocks don't change but UTC shifts, so change
-  # the line below to:  '0 14 * * 1-5'  from November until March.
   schedule:
     - cron: '0 13 * * 1-5'
-
-  # Also lets you start it manually from the GitHub website (Actions tab → Run workflow)
   workflow_dispatch:
 
 jobs:
   run-bot:
     runs-on: ubuntu-latest
-    timeout-minutes: 360   # GitHub's 6-hour maximum – bot exits cleanly before this
+    timeout-minutes: 360
 
     steps:
-      # 1. Download your code
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 2. Restore saved state from yesterday (capital balance, open positions)
       - name: Restore bot state
         uses: actions/cache@v4
         with:
-          path: trading_bot/logs/
+          path: logs/
           key: bot-state-${{ github.run_id }}
           restore-keys: |
             bot-state-
 
-      # 3. Set up Python
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
           cache: 'pip'
 
-      # 4. Install libraries
       - name: Install dependencies
-        run: pip install -r trading_bot/requirements.txt
+        run: pip install -r requirements.txt
 
-      # 5. Run the bot
-      #    MAX_RUNTIME_MINUTES=345 → bot exits after 5h45m (well inside the 6h limit)
-      #    This covers the full trading day: market opens 09:30 ET, closes ~15:15 ET
       - name: Run trading bot
         env:
           ALPACA_API_KEY: ${{ secrets.ALPACA_API_KEY }}
@@ -53,6 +41,4 @@ jobs:
           STARTING_CAPITAL_CZK: '2000'
           WATCHLIST: 'SPY,QQQ,AAPL,TSLA,AMD,NVDA'
           MAX_RUNTIME_MINUTES: '345'
-        run: |
-          cd trading_bot
-          python3 main.py --broker alpaca
+        run: python3 main.py --broker alpaca
